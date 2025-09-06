@@ -66,8 +66,8 @@ export const FileRetrieval = () => {
         description: "Preparing secure download...",
       });
 
-      // Open download URL in new tab/window
-      const downloadUrl = `${window.location.origin.replace('localhost:8080', 'localhost:54321')}/functions/v1/retrieve-file?code=${shareCode.trim().toUpperCase()}`;
+      // Open download URL using Supabase function invoke
+      const downloadUrl = `https://mhhfaxbrwefmsmxvtoah.supabase.co/functions/v1/retrieve-file?code=${shareCode.trim().toUpperCase()}`;
       window.open(downloadUrl, '_blank');
 
       // Wait a bit then mark as downloaded

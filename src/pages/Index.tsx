@@ -67,16 +67,6 @@ const Index = () => {
         {renderContent()}
       </main>
 
-      {/* Note about Supabase Integration */}
-      {activeTab !== 'hero' && (
-        <div className="fixed bottom-6 right-6 max-w-sm">
-          <div className="glass-card p-4 rounded-lg border border-yellow-500/30 bg-yellow-500/5">
-            <p className="text-sm text-yellow-300">
-              <strong>Demo Mode:</strong> Connect to Supabase to enable actual file upload, storage, and authentication features.
-            </p>
-          </div>
-        </div>
-      )}
     </>
   );
 };
