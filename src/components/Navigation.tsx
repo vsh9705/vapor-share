@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Upload, Download, Menu, X } from "lucide-react";
+import { Shield, Upload, Download, Menu, X, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 
 interface NavigationProps {
   activeTab: 'hero' | 'upload' | 'retrieve';
@@ -9,6 +12,33 @@ interface NavigationProps {
 
 export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      navigate("/auth");
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-primary/20">
@@ -44,9 +74,16 @@ export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
               <Download className="w-4 h-4 mr-2" />
               Retrieve
             </Button>
-            <Button variant="glass" size="sm">
-              Login
-            </Button>
+            {user ? (
+              <Button variant="glass" size="sm" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            ) : (
+              <Button variant="glass" size="sm" onClick={() => navigate("/auth")}>
+                Login
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -100,9 +137,16 @@ export const Navigation = ({ activeTab, onTabChange }: NavigationProps) => {
               <Download className="w-4 h-4 mr-2" />
               Retrieve File
             </Button>
-            <Button variant="glass" size="sm" className="w-full">
-              Login
-            </Button>
+            {user ? (
+              <Button variant="glass" size="sm" className="w-full" onClick={handleSignOut}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            ) : (
+              <Button variant="glass" size="sm" className="w-full" onClick={() => navigate("/auth")}>
+                Login
+              </Button>
+            )}
           </div>
         )}
       </div>

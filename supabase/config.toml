@@ -1,1 +1,10 @@
 project_id = "mhhfaxbrwefmsmxvtoah"
+
+[functions.upload-file]
+verify_jwt = true
+
+[functions.retrieve-file]
+verify_jwt = false
+
+[functions.cleanup-files]
+verify_jwt = false

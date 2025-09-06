@@ -4,19 +4,22 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Download, Shield, AlertTriangle, CheckCircle, Timer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const FileRetrieval = () => {
   const [shareCode, setShareCode] = useState("");
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [fileInfo, setFileInfo] = useState<{
-    name: string;
-    size: string;
-    type: string;
+    id: string;
+    filename: string;
+    size: number;
+    mimeType: string;
+    expiresAt: string;
   } | null>(null);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const { toast } = useToast();
 
-  const handleRetrieve = () => {
+  const handleRetrieve = async () => {
     if (!shareCode.trim()) {
       toast({
         title: "Invalid code",
@@ -28,34 +31,61 @@ export const FileRetrieval = () => {
 
     setIsRetrieving(true);
     
-    // Simulate file retrieval
-    setTimeout(() => {
-      const mockFiles = [
-        { name: "confidential-report.pdf", size: "2.4 MB", type: "PDF Document" },
-        { name: "secure-image.jpg", size: "1.8 MB", type: "Image" },
-        { name: "sensitive-data.xlsx", size: "856 KB", type: "Spreadsheet" },
-      ];
-      
-      const randomFile = mockFiles[Math.floor(Math.random() * mockFiles.length)];
-      setFileInfo(randomFile);
+    try {
+      const response = await supabase.functions.invoke('retrieve-file', {
+        body: { accessCode: shareCode.trim().toUpperCase() },
+      });
+
+      if (response.error || !response.data?.success) {
+        throw new Error(response.data?.error || response.error?.message || 'Failed to retrieve file');
+      }
+
+      setFileInfo(response.data.file);
+      toast({
+        title: "File found!",
+        description: "File is ready for download.",
+      });
+    } catch (error: any) {
+      console.error('Retrieve error:', error);
+      toast({
+        title: "File not found",
+        description: error.message || "Invalid or expired access code.",
+        variant: "destructive",
+      });
+    } finally {
       setIsRetrieving(false);
-    }, 1500);
+    }
   };
 
-  const handleDownload = () => {
-    // Simulate download
-    toast({
-      title: "Download started",
-      description: "File is being decrypted and downloaded.",
-    });
+  const handleDownload = async () => {
+    if (!fileInfo) return;
 
-    setTimeout(() => {
-      setIsDownloaded(true);
+    try {
       toast({
-        title: "File self-destructed",
-        description: "The file has been permanently deleted from our servers.",
+        title: "Download starting",
+        description: "Preparing secure download...",
       });
-    }, 2000);
+
+      // Open download URL in new tab/window
+      const downloadUrl = `${window.location.origin.replace('localhost:8080', 'localhost:54321')}/functions/v1/retrieve-file?code=${shareCode.trim().toUpperCase()}`;
+      window.open(downloadUrl, '_blank');
+
+      // Wait a bit then mark as downloaded
+      setTimeout(() => {
+        setIsDownloaded(true);
+        toast({
+          title: "File self-destructed",
+          description: "The file has been permanently deleted from our servers.",
+        });
+      }, 3000);
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: error.message || "An error occurred during download",
+        variant: "destructive",
+      });
+    }
   };
 
   const resetForm = () => {
@@ -84,11 +114,11 @@ export const FileRetrieval = () => {
             <div className="space-y-4">
               <div className="max-w-sm mx-auto">
                 <Input
-                  placeholder="Enter 6-digit code"
+                  placeholder="Enter 8-digit code"
                   value={shareCode}
                   onChange={(e) => setShareCode(e.target.value.toUpperCase())}
                   className="text-center text-xl font-mono tracking-widest bg-secondary/50 border-primary/30"
-                  maxLength={6}
+                  maxLength={8}
                 />
               </div>
               
@@ -96,7 +126,7 @@ export const FileRetrieval = () => {
                 variant="cyber"
                 size="lg"
                 onClick={handleRetrieve}
-                disabled={isRetrieving || shareCode.length !== 6}
+                disabled={isRetrieving || shareCode.length !== 8}
                 className="w-full max-w-xs"
               >
                 {isRetrieving ? (
@@ -125,15 +155,19 @@ export const FileRetrieval = () => {
                 <div className="space-y-2 text-left">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Name:</span>
-                    <span className="font-mono">{fileInfo.name}</span>
+                    <span className="font-mono">{fileInfo.filename}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Type:</span>
-                    <span>{fileInfo.type}</span>
+                    <span>{fileInfo.mimeType}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Size:</span>
-                    <span>{fileInfo.size}</span>
+                    <span>{(fileInfo.size / 1024 / 1024).toFixed(2)} MB</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Expires:</span>
+                    <span>{new Date(fileInfo.expiresAt).toLocaleString()}</span>
                   </div>
                 </div>
               </Card>

@@ -1,16 +1,48 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Upload, File, Copy, CheckCircle, Clock, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 
 export const FileUpload = () => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [shareCode, setShareCode] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check authentication
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+    };
+
+    checkAuth();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!session?.user) {
+          navigate("/auth");
+        } else {
+          setUser(session.user);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -33,21 +65,66 @@ export const FileUpload = () => {
 
   const handleFileSelect = (file: File) => {
     setUploadedFile(file);
-    simulateUpload();
+    uploadFile(file);
   };
 
-  const simulateUpload = () => {
+  const uploadFile = async (file: File) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to upload files.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
+
     setIsUploading(true);
-    setTimeout(() => {
-      // Generate a mock share code
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      setShareCode(code);
+
+    try {
+      // Validate file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        throw new Error("File too large. Maximum size is 10MB.");
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session");
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await supabase.functions.invoke('upload-file', {
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || 'Upload failed');
+      }
+
+      const { accessCode } = response.data;
+      setShareCode(accessCode);
       setIsUploading(false);
+      
       toast({
         title: "File uploaded successfully!",
         description: "Your secure share code has been generated.",
       });
-    }, 2000);
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setIsUploading(false);
+      setUploadedFile(null);
+      toast({
+        title: "Upload failed",
+        description: error.message || "An error occurred during upload",
+        variant: "destructive",
+      });
+    }
   };
 
   const copyToClipboard = () => {
@@ -77,7 +154,7 @@ export const FileUpload = () => {
               </div>
               <h3 className="text-2xl font-bold mb-4">Drop your file here</h3>
               <p className="text-muted-foreground mb-6">
-                Drag and drop a file or click to browse. Max size: 100MB
+                Drag and drop a file or click to browse. Max size: 10MB
               </p>
               <Input
                 type="file"
