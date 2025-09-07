@@ -79,21 +79,14 @@ Deno.serve(async (req) => {
     const timestamp = Math.round(Date.now() / 1000);
     const publicId = `vapor-share/${user.id}/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
-    // Create signature for Cloudinary upload
-    const paramsToSign = `public_id=${publicId}&timestamp=${timestamp}`;
-    const signature = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(apiSecret),
-      { name: 'HMAC', hash: 'SHA-1' },
-      false,
-      ['sign']
-    ).then(key =>
-      crypto.subtle.sign('HMAC', key, new TextEncoder().encode(paramsToSign))
-    ).then(signature =>
-      Array.from(new Uint8Array(signature))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-    );
+    // Create signature for Cloudinary upload (parameters must be sorted alphabetically)
+    // According to Cloudinary docs: append API secret to params string, then SHA-1 hash
+    const paramsToSign = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+    const msgUint8 = new TextEncoder().encode(paramsToSign);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8);
+    const signature = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
     // Upload to Cloudinary
     const uploadFormData = new FormData();
@@ -156,19 +149,12 @@ Deno.serve(async (req) => {
       
       // Clean up Cloudinary file if database insert failed
       try {
-        const deleteSignature = await crypto.subtle.importKey(
-          'raw',
-          new TextEncoder().encode(apiSecret),
-          { name: 'HMAC', hash: 'SHA-1' },
-          false,
-          ['sign']
-        ).then(key =>
-          crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`public_id=${cloudinaryResult.public_id}&timestamp=${timestamp}`))
-        ).then(signature =>
-          Array.from(new Uint8Array(signature))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-        );
+        const deleteParams = `public_id=${cloudinaryResult.public_id}&timestamp=${timestamp}${apiSecret}`;
+        const deleteMsgUint8 = new TextEncoder().encode(deleteParams);
+        const deleteHashBuffer = await crypto.subtle.digest('SHA-1', deleteMsgUint8);
+        const deleteSignature = Array.from(new Uint8Array(deleteHashBuffer))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
 
         await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
           method: 'POST',
