@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
         .select('*')
         .eq('access_code', accessCode.toUpperCase())
         .eq('is_accessed', false)
+        .eq('deleted', false)
         .gt('expires_at', new Date().toISOString())
         .single();
 
@@ -79,6 +80,7 @@ Deno.serve(async (req) => {
         .select('*')
         .eq('access_code', accessCode.toUpperCase())
         .eq('is_accessed', false)
+        .eq('deleted', false)
         .gt('expires_at', new Date().toISOString())
         .single();
 
@@ -91,24 +93,25 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Mark file as accessed
+      // Mark file as accessed and deleted
       const { error: updateError } = await supabaseClient
         .from('files')
         .update({ 
           is_accessed: true, 
+          deleted: true,
           accessed_at: new Date().toISOString() 
         })
         .eq('id', fileData.id);
 
       if (updateError) {
-        console.error('Error marking file as accessed:', updateError);
+        console.error('Error marking file as accessed and deleted:', updateError);
         return new Response(
           JSON.stringify({ error: 'Failed to process file access' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log('File marked as accessed:', fileData.id);
+      console.log('File marked as accessed and deleted:', fileData.id);
 
       // Start background task to delete from Cloudinary
       const cloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME');

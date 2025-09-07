@@ -21,6 +21,7 @@ export type Database = {
           cloudinary_public_id: string
           cloudinary_url: string
           created_at: string
+          deleted: boolean
           expires_at: string
           file_size: number
           id: string
@@ -35,6 +36,7 @@ export type Database = {
           cloudinary_public_id: string
           cloudinary_url: string
           created_at?: string
+          deleted?: boolean
           expires_at?: string
           file_size: number
           id?: string
@@ -49,6 +51,7 @@ export type Database = {
           cloudinary_public_id?: string
           cloudinary_url?: string
           created_at?: string
+          deleted?: boolean
           expires_at?: string
           file_size?: number
           id?: string
