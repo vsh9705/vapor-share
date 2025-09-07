@@ -68,21 +68,12 @@ Deno.serve(async (req) => {
     for (const file of filesToCleanup) {
       try {
         const timestamp = Math.round(Date.now() / 1000);
-        const paramsToSign = `public_id=${file.cloudinary_public_id}&timestamp=${timestamp}`;
-        
-        const signature = await crypto.subtle.importKey(
-          'raw',
-          new TextEncoder().encode(apiSecret),
-          { name: 'HMAC', hash: 'SHA-1' },
-          false,
-          ['sign']
-        ).then(key =>
-          crypto.subtle.sign('HMAC', key, new TextEncoder().encode(paramsToSign))
-        ).then(signature =>
-          Array.from(new Uint8Array(signature))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-        );
+        const paramsToSign = `public_id=${file.cloudinary_public_id}&timestamp=${timestamp}${apiSecret}`;
+        const msgUint8 = new TextEncoder().encode(paramsToSign);
+        const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8);
+        const signature = Array.from(new Uint8Array(hashBuffer))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
 
         const deleteResponse = await fetch(
           `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
