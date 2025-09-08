@@ -17,45 +17,39 @@ export type Database = {
       files: {
         Row: {
           access_code: string
-          accessed_at: string | null
           cloudinary_public_id: string
           cloudinary_url: string
           created_at: string
-          deleted: boolean
+          downloaded: boolean
           expires_at: string
           file_size: number
           id: string
-          is_accessed: boolean
           mime_type: string
           original_filename: string
           user_id: string
         }
         Insert: {
           access_code: string
-          accessed_at?: string | null
           cloudinary_public_id: string
           cloudinary_url: string
           created_at?: string
-          deleted?: boolean
+          downloaded?: boolean
           expires_at?: string
           file_size: number
           id?: string
-          is_accessed?: boolean
           mime_type: string
           original_filename: string
           user_id: string
         }
         Update: {
           access_code?: string
-          accessed_at?: string | null
           cloudinary_public_id?: string
           cloudinary_url?: string
           created_at?: string
-          deleted?: boolean
+          downloaded?: boolean
           expires_at?: string
           file_size?: number
           id?: string
-          is_accessed?: boolean
           mime_type?: string
           original_filename?: string
           user_id?: string

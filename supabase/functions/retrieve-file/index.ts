@@ -33,8 +33,7 @@ Deno.serve(async (req) => {
         .from('files')
         .select('*')
         .eq('access_code', accessCode.toUpperCase())
-        .eq('is_accessed', false)
-        .eq('deleted', false)
+        .eq('downloaded', false)
         .gt('expires_at', new Date().toISOString())
         .single();
 
@@ -74,13 +73,12 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get file data and mark as accessed in a transaction
+      // Get file data and mark as downloaded
       const { data: fileData, error: fileError } = await supabaseClient
         .from('files')
         .select('*')
         .eq('access_code', accessCode.toUpperCase())
-        .eq('is_accessed', false)
-        .eq('deleted', false)
+        .eq('downloaded', false)
         .gt('expires_at', new Date().toISOString())
         .single();
 
@@ -93,27 +91,26 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Mark file as accessed and deleted
+      // Mark file as downloaded
       const { error: updateError } = await supabaseClient
         .from('files')
-        .update({ 
-          is_accessed: true, 
-          deleted: true,
-          accessed_at: new Date().toISOString() 
-        })
+        .update({ downloaded: true })
         .eq('id', fileData.id);
 
       if (updateError) {
-        console.error('Error marking file as accessed and deleted:', updateError);
+        console.error('Error marking file as downloaded:', updateError);
         return new Response(
           JSON.stringify({ error: 'Failed to process file access' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      console.log('File marked as accessed and deleted:', fileData.id);
+      console.log('File marked as downloaded:', fileData.id);
 
-      // Start background task to delete from Cloudinary
+      // Redirect to Cloudinary URL first, then delete in background
+      const response = Response.redirect(fileData.cloudinary_url, 302);
+
+      // Start background task to delete from Cloudinary AFTER redirect
       const cloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME');
       const apiKey = Deno.env.get('CLOUDINARY_API_KEY');
       const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET');
@@ -122,6 +119,9 @@ Deno.serve(async (req) => {
         EdgeRuntime.waitUntil(
           (async () => {
             try {
+              // Wait a bit to ensure user can download first
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              
               const timestamp = Math.round(Date.now() / 1000);
               const paramsToSign = `public_id=${fileData.cloudinary_public_id}&timestamp=${timestamp}${apiSecret}`;
               const msgUint8 = new TextEncoder().encode(paramsToSign);
@@ -130,8 +130,9 @@ Deno.serve(async (req) => {
                 .map(b => b.toString(16).padStart(2, '0'))
                 .join('');
 
+              // Use /raw/destroy for all file types (not just images)
               const deleteResponse = await fetch(
-                `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`,
+                `https://api.cloudinary.com/v1_1/${cloudName}/raw/destroy`,
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -156,8 +157,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Redirect to Cloudinary URL for download
-      return Response.redirect(fileData.cloudinary_url, 302);
+      return response;
     }
 
     return new Response(
