@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Starting cleanup of expired and accessed files...');
+    console.log('Starting cleanup of deleted files...');
 
     // Get Cloudinary credentials
     const cloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME');
@@ -39,11 +39,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get files to clean up (expired or already accessed)
+    // Get files that are marked as deleted but still have Cloudinary references
     const { data: filesToCleanup, error: fetchError } = await supabaseClient
       .from('files')
       .select('*')
-      .or(`expires_at.lt.${new Date().toISOString()},is_accessed.eq.true`);
+      .eq('deleted', true)
+      .not('cloudinary_public_id', 'is', null);
 
     if (fetchError) {
       console.error('Error fetching files to cleanup:', fetchError);
@@ -92,6 +93,15 @@ Deno.serve(async (req) => {
         if (deleteResponse.ok) {
           console.log(`Deleted from Cloudinary: ${file.cloudinary_public_id}`);
           deletedFromCloudinary++;
+          
+          // Clear cloudinary references from database after successful deletion
+          await supabaseClient
+            .from('files')
+            .update({ 
+              cloudinary_public_id: null, 
+              cloudinary_url: null 
+            })
+            .eq('id', file.id);
         } else {
           console.error(`Failed to delete from Cloudinary: ${file.cloudinary_public_id}`, await deleteResponse.text());
         }
@@ -100,19 +110,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Clean up database records
-    const { error: cleanupError } = await supabaseClient
-      .rpc('cleanup_expired_files');
+    // The database cleanup is now handled by marking files as deleted during retrieval
+    // No need to call cleanup_expired_files RPC since we're not physically deleting records
 
-    if (cleanupError) {
-      console.error('Database cleanup error:', cleanupError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to cleanup database records' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Cleanup completed. Deleted ${deletedFromCloudinary} files from Cloudinary and cleaned database records.`);
+    console.log(`Cleanup completed. Deleted ${deletedFromCloudinary} files from Cloudinary.`);
 
     return new Response(
       JSON.stringify({ 
