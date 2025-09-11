@@ -14,6 +14,7 @@ export const FileUpload = () => {
   const [shareCode, setShareCode] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [recipientEmail, setRecipientEmail] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -95,6 +96,9 @@ export const FileUpload = () => {
 
       const formData = new FormData();
       formData.append('file', file);
+      if (recipientEmail.trim()) {
+        formData.append('recipientEmail', recipientEmail.trim());
+      }
 
       const response = await supabase.functions.invoke('upload-file', {
         body: formData,
@@ -156,6 +160,16 @@ export const FileUpload = () => {
               <p className="text-muted-foreground mb-6">
                 Drag and drop a file or click to browse. Max size: 10MB
               </p>
+              
+              <div className="mb-6">
+                <Input
+                  type="email"
+                  placeholder="Share with email (optional)"
+                  value={recipientEmail}
+                  onChange={(e) => setRecipientEmail(e.target.value)}
+                  className="max-w-sm mx-auto bg-background/50"
+                />
+              </div>
               <Input
                 type="file"
                 className="hidden"
@@ -222,6 +236,7 @@ export const FileUpload = () => {
                 onClick={() => {
                   setUploadedFile(null);
                   setShareCode("");
+                  setRecipientEmail("");
                 }}
               >
                 Upload Another File

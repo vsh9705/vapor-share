@@ -3,9 +3,10 @@ import { Navigation } from "@/components/Navigation";
 import { Hero } from "@/components/Hero";
 import { FileUpload } from "@/components/FileUpload";
 import { FileRetrieval } from "@/components/FileRetrieval";
+import { Notifications } from "@/components/Notifications";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState<'hero' | 'upload' | 'retrieve'>('hero');
+  const [activeTab, setActiveTab] = useState<'hero' | 'upload' | 'retrieve' | 'notifications'>('hero');
 
   const renderContent = () => {
     switch (activeTab) {
@@ -45,6 +46,22 @@ const Index = () => {
             </div>
           </div>
         );
+      case 'notifications':
+        return (
+          <div className="min-h-screen pt-24 pb-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+                  <span className="text-gradient">Your Notifications</span>
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Files shared with you will appear here with access codes.
+                </p>
+              </div>
+              <Notifications />
+            </div>
+          </div>
+        );
       default:
         return <Hero />;
     }
@@ -57,7 +74,9 @@ const Index = () => {
         {activeTab === 'upload' 
           ? 'Upload Secure File - VaporShare' 
           : activeTab === 'retrieve' 
-          ? 'Retrieve File - VaporShare' 
+          ? 'Retrieve File - VaporShare'
+          : activeTab === 'notifications'
+          ? 'Notifications - VaporShare'
           : 'VaporShare - Secure Self-Destruct File Sharing'
         }
       </title>

@@ -45,6 +45,7 @@ Deno.serve(async (req) => {
 
     const formData = await req.formData();
     const file = formData.get('file') as File;
+    const recipientEmail = formData.get('recipientEmail') as string;
 
     if (!file) {
       return new Response(
@@ -140,6 +141,8 @@ Deno.serve(async (req) => {
         cloudinary_public_id: cloudinaryResult.public_id,
         cloudinary_url: cloudinaryResult.secure_url,
         access_code: codeData,
+        sender_email: user.email,
+        recipient_email: recipientEmail,
       })
       .select()
       .single();
@@ -174,6 +177,23 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Failed to save file metadata' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // If recipient email is provided, check if user exists and create notification
+    if (recipientEmail) {
+      const { data: recipientUsers } = await supabaseClient.auth.admin.listUsers();
+      const recipientUser = recipientUsers?.users?.find(u => u.email === recipientEmail);
+      
+      if (recipientUser) {
+        await supabaseClient
+          .from('notifications')
+          .insert({
+            user_id: recipientUser.id,
+            sender_email: user.email || 'Unknown',
+            file_code: codeData,
+            file_name: file.name,
+          });
+      }
     }
 
     return new Response(

@@ -26,6 +26,8 @@ export type Database = {
           id: string
           mime_type: string
           original_filename: string
+          recipient_email: string | null
+          sender_email: string | null
           user_id: string
         }
         Insert: {
@@ -39,6 +41,8 @@ export type Database = {
           id?: string
           mime_type: string
           original_filename: string
+          recipient_email?: string | null
+          sender_email?: string | null
           user_id: string
         }
         Update: {
@@ -52,6 +56,38 @@ export type Database = {
           id?: string
           mime_type?: string
           original_filename?: string
+          recipient_email?: string | null
+          sender_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          file_code: string
+          file_name: string
+          id: string
+          read: boolean
+          sender_email: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_code: string
+          file_name: string
+          id?: string
+          read?: boolean
+          sender_email: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_code?: string
+          file_name?: string
+          id?: string
+          read?: boolean
+          sender_email?: string
           user_id?: string
         }
         Relationships: []
