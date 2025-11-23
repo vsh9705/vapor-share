@@ -253,7 +253,6 @@ export const FileUpload = () => {
           <div>
             <h4 className="font-semibold mb-2">Security Features</h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Files are encrypted with AES-256 before upload</li>
               <li>• Share codes expire after 24 hours</li>
               <li>• Files are permanently deleted after first access</li>
               <li>• No file metadata is stored on our servers</li>
