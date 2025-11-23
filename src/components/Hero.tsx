@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Lock, Timer, Zap } from "lucide-react";
+import { Shield, Lock, Timer, Zap, MessageSquare } from "lucide-react";
 import heroImage from "@/assets/hero-cyber.jpg";
+import { Reviews } from "@/components/Reviews";
 
 export const Hero = () => {
+  const [showReviews, setShowReviews] = useState(false);
+
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image with Overlay */}
@@ -78,8 +82,27 @@ export const Hero = () => {
               <p className="text-sm text-muted-foreground">Generate secure codes and share instantly</p>
             </div>
           </div>
+
+          {/* Show Reviews Button */}
+          <div className="mt-8">
+            <Button
+              variant="outline"
+              onClick={() => setShowReviews(!showReviews)}
+              className="glass-card"
+            >
+              <MessageSquare className="w-5 h-5 mr-2" />
+              {showReviews ? "Hide Reviews" : "Show Reviews"}
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Reviews Section */}
+      {showReviews && (
+        <div className="relative z-10 mt-8">
+          <Reviews />
+        </div>
+      )}
     </div>
   );
 };
