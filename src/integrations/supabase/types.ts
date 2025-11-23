@@ -97,14 +97,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_expired_files: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      generate_access_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      cleanup_expired_files: { Args: never; Returns: number }
+      generate_access_code: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
