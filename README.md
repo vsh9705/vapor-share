@@ -1,3 +1,9 @@
+Team members -
+- Vasu Sharma 23UCS734
+- Arnav Kumar 23UCS546
+- Tanishka Gupta 23UCS722
+- Kriti Bhambhani 23UCS624
+  
 **Use your preferred IDE**
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
